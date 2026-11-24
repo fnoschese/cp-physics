@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hot Wheels Launcher Lab</title>
+<style>
+  :root{
+    --ink:#1d1a24; --muted:#5d5869; --line:#cfcadb; --bg:#f6f4fa; --card:#fff;
+    --purple:#4b2a83; --purple-soft:#ece6f6; --gold:#c9a227; --track:#f28c28; --lcd:#c7d3b0;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.5 Georgia,"Times New Roman",serif}
+  .wrap{max-width:1000px;margin:0 auto;padding:16px}
+  header.top{background:var(--purple);color:#fff;border-bottom:4px solid var(--gold)}
+  header.top .wrap{padding-top:14px;padding-bottom:14px}
+  h1{font-size:1.25rem;margin:0}
+  .sub{opacity:.85;font-size:.95rem}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+  .card h2{font-size:1rem;margin:0 0 8px;color:var(--purple)}
+  .tip{font:.92rem/1.45 system-ui,sans-serif;color:var(--muted);margin:0}
+  .tip li{margin:2px 0}
+  svg{display:block;width:100%;height:auto;touch-action:none;user-select:none}
+  .row{display:flex;flex-wrap:wrap;gap:14px}
+  .row > .card{flex:1 1 300px;margin:0}
+  .btn{font:600 .95rem system-ui,sans-serif;padding:9px 16px;border-radius:8px;border:0;background:var(--purple);color:#fff;cursor:pointer}
+  .btn:hover{filter:brightness(1.15)}
+  .btn:disabled{opacity:.45;cursor:default;filter:none}
+  .btn.gold{background:var(--gold);color:var(--ink)}
+  .btn.ghost{background:#fff;color:var(--purple);border:1px solid var(--purple)}
+  .btn:focus-visible,.small:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+  .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:10px}
+  .small{font:600 .9rem system-ui,sans-serif;min-width:40px;height:36px;border:1px solid var(--line);background:#fff;border-radius:6px;cursor:pointer;padding:0 10px}
+  .small:hover{background:var(--purple-soft)}
+  .lbl{font:600 .85rem system-ui,sans-serif;color:var(--muted)}
+  .lcdbox{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .lcd{font:700 2.1rem/1 "Courier New",monospace;background:var(--lcd);color:#1f2a12;border:3px solid #3a3a3a;border-radius:8px;padding:10px 14px;min-width:190px;text-align:right;letter-spacing:2px}
+  .lcd small{font-size:1rem;letter-spacing:0;margin-left:6px}
+  .balance{font:700 2.1rem/1 "Courier New",monospace;background:#222;color:#7CFC00;border-radius:8px;padding:10px 14px;min-width:170px;text-align:right}
+  .balance small{font-size:1rem;margin-left:6px}
+  select{font:inherit;padding:4px 6px;border-radius:6px;border:1px solid var(--line)}
+  .sr{position:absolute;left:-9999px}
+  .hint{font:.85rem system-ui,sans-serif;color:var(--muted)}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <h1>Hot Wheels Launcher Lab</h1>
+  <div class="sub">Simulation for the group quiz · CP Physics</div>
+</div></header>
+
+<main class="wrap">
+  <div class="card">
+    <h2>How to use this simulation</h2>
+    <ul class="tip">
+      <li><b>Balance:</b> press <i>Put car on balance</i> to find the car's mass.</li>
+      <li><b>Launcher:</b> drag the car in the <i>Launcher close-up</i> to pull the spring back (or use the − / + buttons). Read the compression from the ruler.</li>
+      <li><b>Velocimeter:</b> drag the velocimeter gate along the track (or use the arrow buttons). Use the close-up ruler to place it exactly. The meterstick's 0 is where the car leaves the launcher.</li>
+      <li>Press <b>Launch</b>. The velocimeter shows the car's speed as it passes through the gate. Like the real lab, results vary a little from trial to trial, so do more than one trial.</li>
+    </ul>
+  </div>
+
+  <!-- Main track -->
+  <div class="card">
+    <h2>Track</h2>
+    <svg id="track" viewBox="0 34 1000 156" aria-label="Hot Wheels track with launcher, car, velocimeter, and meterstick">
+      <defs>
+        <pattern id="desk" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#2b2b2b"/></pattern>
+      </defs>
+      <rect x="0" y="122" width="1000" height="68" fill="url(#desk)"/>
+      <g id="stick"></g>
+      <rect x="10" y="110" width="980" height="10" rx="2" fill="var(--track)"/>
+      <rect x="982" y="86" width="10" height="34" fill="#666"/>
+      <g id="launcherMain"></g>
+      <g id="gate" tabindex="0" role="slider" aria-label="Velocimeter position along the track" style="cursor:grab"></g>
+      <g id="carMain"></g>
+    </svg>
+    <div class="controls">
+      <button class="btn gold" id="launch">Launch</button>
+      <button class="btn ghost" id="reset">Reset car</button>
+      <label class="lbl"><input type="checkbox" id="slow"> Slow motion</label>
+      <span class="spacer" style="flex:1"></span>
+      <span class="lbl">Move velocimeter:</span>
+      <button class="small" data-move="-10" aria-label="Move velocimeter 10 cm left">«</button>
+      <button class="small" data-move="-1" aria-label="Move velocimeter 1 cm left">‹</button>
+      <button class="small" data-move="1" aria-label="Move velocimeter 1 cm right">›</button>
+      <button class="small" data-move="10" aria-label="Move velocimeter 10 cm right">»</button>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="card">
+      <h2>Launcher close-up</h2>
+      <svg id="launchZoom" viewBox="0 0 460 170" aria-label="Close-up of the launcher with a centimeter ruler"></svg>
+      <div class="controls">
+        <span class="lbl">Pull back:</span>
+        <button class="small" data-pull="-0.5" aria-label="Release 0.5 cm">− 0.5</button>
+        <button class="small" data-pull="-0.1" aria-label="Release 0.1 cm">− 0.1</button>
+        <button class="small" data-pull="0.1" aria-label="Pull back 0.1 cm">+ 0.1</button>
+        <button class="small" data-pull="0.5" aria-label="Pull back 0.5 cm">+ 0.5</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Velocimeter close-up</h2>
+      <svg id="gateZoom" viewBox="0 0 460 120" aria-label="Close-up of the meterstick at the velocimeter"></svg>
+      <div class="lcdbox" style="margin-top:10px">
+        <div class="lcd" id="lcd" aria-live="polite">-.--<small>m/s</small></div>
+        <button class="small" id="clearLcd">Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="row" style="margin-top:14px">
+    <div class="card">
+      <h2>Balance</h2>
+      <div class="lcdbox">
+        <div class="balance" id="bal" aria-live="polite">0.0<small>g</small></div>
+        <button class="btn" id="weigh">Put car on balance</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+(function(){
+"use strict";
+const NS = "http://www.w3.org/2000/svg";
+const K_SPRING = 1000;        // N/m (50 N per 5 cm)
+const EFF = 0.50;             // fraction of spring energy that becomes KE
+const G = 10;                 // N/kg
+const MAX_PULL = 7.0;         // cm
+const TRACK_CM = 150;         // usable track past the launcher exit
+const STORE = "cp-hotwheels-sim";
+
+// ---- persistent per-computer settings ----
+let saved = {};
+try { saved = JSON.parse(localStorage.getItem(STORE) || "{}") || {}; } catch(e){ saved = {}; }
+function persist(){ try { localStorage.setItem(STORE, JSON.stringify(saved)); } catch(e){} }
+function newMass(){ return Math.round((33 + Math.random()*4) * 10) / 10; }
+if(!(saved.mass > 0)) { saved.mass = newMass(); persist(); }
+
+// ---- state ----
+let pull = 0;          // cm the spring is compressed
+let gateCm = 0;        // velocimeter position, cm past launcher exit
+let carCm = 0;         // car front position relative to launcher exit (cm); negative = in launcher
+let running = false;
+
+// ---- geometry of main track ----
+// x(cm) -> svg x. Launcher exit (0 cm) at x=150. 150 cm at x=960
+const X0 = 150, PXCM = (960 - 150) / TRACK_CM;
+const xOf = cm => X0 + cm * PXCM;
+const CAR_LEN = 7.5;   // cm
+
+function mk(tag, attrs, parent){
+  const e = document.createElementNS(NS, tag);
+  for(const k in attrs) e.setAttribute(k, attrs[k]);
+  if(parent) parent.appendChild(e);
+  return e;
+}
+
+// Meterstick on main track
+(function drawStick(){
+  const g = document.getElementById("stick");
+  mk("rect",{x:xOf(-2),y:128,width:xOf(152)-xOf(-2),height:38,fill:"#f3d98b",stroke:"#9a7d22"},g);
+  for(let c=0;c<=150;c++){
+    const x = xOf(c), len = c%10===0 ? 14 : (c%5===0 ? 9 : 5);
+    mk("line",{x1:x,y1:128,x2:x,y2:128+len,stroke:"#333","stroke-width":c%10===0?1.4:0.7},g);
+    if(c%10===0){ const t = mk("text",{x:x,y:160,"text-anchor":"middle","font-size":12,"font-family":"system-ui,sans-serif",fill:"#222"},g); t.textContent=c; }
+  }
+  const t = mk("text",{x:xOf(152)+4,y:160,"font-size":11,"font-family":"system-ui,sans-serif",fill:"#ddd"},g); t.textContent="cm";
+})();
+
+// Car drawing (side view), front at local x=0, facing right, length L px, wheels on y=0
+function drawCar(parent, Lpx){
+  const s = Lpx / 75;
+  const g = mk("g",{},parent);
+  mk("path",{d:`M${-75*s} ${-8*s} L${-73*s} ${-20*s} L${-50*s} ${-22*s} L${-38*s} ${-34*s} L${-20*s} ${-34*s} L${-12*s} ${-22*s} L${-2*s} ${-18*s} L0 ${-9*s} Z`,
+    fill:"#e8551f",stroke:"#8a2c0a","stroke-width":Math.max(0.8,1.2*s)},g);
+  mk("path",{d:`M${-46*s} ${-23*s} L${-37*s} ${-31*s} L${-24*s} ${-31*s} L${-18*s} ${-23*s} Z`,fill:"#bfe3ff",stroke:"#555","stroke-width":0.6},g);
+  [-60,-14].forEach(cx=>{
+    mk("circle",{cx:cx*s,cy:-6*s,r:7*s,fill:"#222"},g);
+    mk("circle",{cx:cx*s,cy:-6*s,r:3*s,fill:"#bbb"},g);
+  });
+  return g;
+}
+
+// Launcher drawing: back plate at xBack, spring from plate to plunger face at xFace
+function drawLauncher(g, xBack, xFace, y, h, coils){
+  while(g.firstChild) g.removeChild(g.firstChild);
+  mk("rect",{x:xBack-14,y:y-h-6,width:14,height:h+6,fill:"#777",stroke:"#444"},g);
+  let d = `M${xBack} ${y-h/2}`;
+  const n = coils*2, w = (xFace - xBack)/n;
+  for(let i=1;i<=n;i++){ d += ` L${xBack + i*w} ${y - h/2 + (i%2? -h*0.38 : h*0.38)}`; }
+  mk("path",{d, fill:"none", stroke:"#555", "stroke-width":2},g);
+  mk("rect",{x:xFace-3,y:y-h,width:5,height:h,fill:"#444"},g);
+}
+
+// ---- main scene elements ----
+const launcherMain = document.getElementById("launcherMain");
+const carMain = document.getElementById("carMain");
+drawCar(carMain, CAR_LEN*PXCM);
+const gateEl = document.getElementById("gate");
+(function drawGate(){
+  mk("rect",{x:-4,y:58,width:8,height:52,fill:"#2c5aa0"},gateEl);
+  mk("rect",{x:-22,y:44,width:44,height:20,rx:4,fill:"#1f3f73"},gateEl);
+  const t = mk("text",{x:0,y:58,"text-anchor":"middle","font-size":11,"font-family":"system-ui,sans-serif",fill:"#fff"},gateEl); t.textContent="BeeSpi";
+  mk("polygon",{points:"-6,120 6,120 0,128",fill:"#ffd24a"},gateEl);
+  mk("rect",{x:-26,y:40,width:52,height:92,fill:"transparent"},gateEl); // grab area
+})();
+
+function render(){
+  // launcher on main track: back plate fixed so that spring rest length is 8 cm
+  const face = carCm < 0 ? carCm : 0;          // plunger follows car while compressed
+  drawLauncher(launcherMain, xOf(-8), xOf(face), 109, 20, 8);
+  carMain.setAttribute("transform", `translate(${xOf(carCm) + CAR_LEN*PXCM} 110)`);
+  gateEl.setAttribute("transform", `translate(${xOf(gateCm)} 0)`);
+  gateEl.setAttribute("aria-valuenow", gateCm.toFixed(0));
+  gateEl.setAttribute("aria-valuetext", "velocimeter placed on the meterstick");
+  renderLaunchZoom();
+  renderGateZoom();
+}
+// NOTE: carCm is the position of the car's REAR edge relative to launcher exit.
+// When the rear passes 0 the car has left the launcher (Point B). The gate is read
+// when the car's rear (the same reference) passes it, so a gate at 0 cm reads v at B.
+
+// ---- launcher close-up ----
+const LZ = document.getElementById("launchZoom");
+const LZ_X0 = 330, LZ_PX = 30;     // launcher exit (0 cm) at x=330, 30 px per cm
+const lzX = cm => LZ_X0 + cm*LZ_PX;
+const lzLaunch = mk("g",{},LZ);
+const lzCar = mk("g",{tabindex:"0",role:"slider","aria-label":"Pull back the car to compress the spring","aria-valuemin":"0","aria-valuemax":String(MAX_PULL),style:"cursor:grab"},LZ);
+drawCar(lzCar, CAR_LEN*LZ_PX*0.45); // drawn smaller so it fits; rear is what matters
+(function lzStatic(){
+  mk("rect",{x:0,y:96,width:460,height:8,fill:"var(--track)"},LZ);
+  // ruler
+  const g = mk("g",{},LZ);
+  mk("rect",{x:lzX(-10.5),y:108,width:lzX(3.5)-lzX(-10.5),height:44,fill:"#f8f3e0",stroke:"#9a7d22"},g);
+  for(let mm=-105; mm<=35; mm++){
+    const x = lzX(mm/10), len = mm%10===0 ? 16 : (mm%5===0 ? 11 : 6);
+    mk("line",{x1:x,y1:108,x2:x,y2:108+len,stroke:"#333","stroke-width":mm%10===0?1.3:0.6},g);
+    if(mm%10===0){ const t=mk("text",{x,y:144,"text-anchor":"middle","font-size":12,"font-family":"system-ui,sans-serif",fill:"#222"},g); t.textContent=Math.abs(mm/10); }
+  }
+  const t = mk("text",{x:lzX(3.5)+4,y:144,"font-size":11,"font-family":"system-ui,sans-serif",fill:"#555"},g); t.textContent="cm";
+  const n = mk("text",{x:10,y:20,"font-size":13,"font-family":"system-ui,sans-serif",fill:"#5d5869"},LZ);
+  n.textContent = "Drag the car left to compress the spring.";
+})();
+function renderLaunchZoom(){
+  const face = carCm < 0 ? carCm : 0;
+  drawLauncher(lzLaunch, lzX(-8), lzX(Math.max(face, -10)), 95, 50, 7);
+  const rear = Math.max(carCm, -10);
+  if(carCm > 4){ lzCar.setAttribute("visibility","hidden"); }
+  else { lzCar.setAttribute("visibility","visible"); lzCar.setAttribute("transform", `translate(${lzX(rear) + CAR_LEN*LZ_PX*0.45 + 2} 96)`); }
+  lzCar.setAttribute("aria-valuenow", pull.toFixed(1));
+  lzCar.setAttribute("aria-valuetext", "spring compressed; read the ruler");
+}
+
+// ---- velocimeter close-up ----
+const GZ = document.getElementById("gateZoom");
+const gzRuler = mk("g",{},GZ);
+const GZ_PX = 30;  // px per cm, gate centered at x=230
+function renderGateZoom(){
+  while(gzRuler.firstChild) gzRuler.removeChild(gzRuler.firstChild);
+  mk("rect",{x:0,y:40,width:460,height:50,fill:"#f8f3e0",stroke:"#9a7d22"},gzRuler);
+  const lo = Math.floor((gateCm - 8)*10), hi = Math.ceil((gateCm + 8)*10);
+  for(let mm=lo; mm<=hi; mm++){
+    if(mm < -20 || mm > 1520) continue;
+    const x = 230 + (mm/10 - gateCm)*GZ_PX;
+    if(x < 0 || x > 460) continue;
+    const len = mm%10===0 ? 18 : (mm%5===0 ? 12 : 7);
+    mk("line",{x1:x,y1:40,x2:x,y2:40+len,stroke:"#333","stroke-width":mm%10===0?1.3:0.6},gzRuler);
+    if(mm%10===0){ const t=mk("text",{x,y:80,"text-anchor":"middle","font-size":13,"font-family":"system-ui,sans-serif",fill:"#222"},gzRuler); t.textContent=mm/10; }
+  }
+  mk("rect",{x:226,y:4,width:8,height:36,fill:"#2c5aa0"},gzRuler);
+  mk("polygon",{points:"222,36 238,36 230,46",fill:"#ffd24a",stroke:"#333","stroke-width":0.6},gzRuler);
+  const t = mk("text",{x:8,y:110,"font-size":12,"font-family":"system-ui,sans-serif",fill:"#5d5869"},gzRuler);
+  t.textContent = "cm (the yellow pointer marks the velocimeter's sensor)";
+}
+
+// ---- interactions ----
+function setPull(v){
+  if(running) return;
+  pull = Math.round(Math.max(0, Math.min(MAX_PULL, v))*10)/10;
+  carCm = -pull;
+  launchBtn.disabled = false;
+  render();
+}
+function setGate(v){
+  gateCm = Math.max(0, Math.min(TRACK_CM - 5, v));
+  render();
+}
+function svgPoint(svg, evt){
+  const pt = svg.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY;
+  return pt.matrixTransform(svg.getScreenCTM().inverse());
+}
+// drag car in close-up
+let dragCar = null;
+lzCar.addEventListener("pointerdown", e=>{ if(running) return; dragCar = {start: svgPoint(LZ,e).x, pull0: pull}; lzCar.setPointerCapture(e.pointerId); lzCar.style.cursor="grabbing"; });
+lzCar.addEventListener("pointermove", e=>{ if(!dragCar) return; const dx = svgPoint(LZ,e).x - dragCar.start; setPull(dragCar.pull0 - dx/LZ_PX); });
+lzCar.addEventListener("pointerup", ()=>{ dragCar=null; lzCar.style.cursor="grab"; });
+lzCar.addEventListener("keydown", e=>{
+  if(e.key==="ArrowLeft"||e.key==="ArrowDown"){ setPull(pull + (e.shiftKey?0.5:0.1)); e.preventDefault(); }
+  if(e.key==="ArrowRight"||e.key==="ArrowUp"){ setPull(pull - (e.shiftKey?0.5:0.1)); e.preventDefault(); }
+});
+document.querySelectorAll("[data-pull]").forEach(b=> b.addEventListener("click", ()=> setPull(pull + parseFloat(b.dataset.pull))));
+
+// drag gate on main track
+const TR = document.getElementById("track");
+let dragGate = null;
+gateEl.addEventListener("pointerdown", e=>{ if(running) return; dragGate = {start: svgPoint(TR,e).x, g0: gateCm}; gateEl.setPointerCapture(e.pointerId); gateEl.style.cursor="grabbing"; });
+gateEl.addEventListener("pointermove", e=>{ if(!dragGate) return; const dx = svgPoint(TR,e).x - dragGate.start; setGate(Math.round((dragGate.g0 + dx/PXCM)*10)/10); });
+gateEl.addEventListener("pointerup", ()=>{ dragGate=null; gateEl.style.cursor="grab"; });
+gateEl.addEventListener("keydown", e=>{
+  if(running) return;
+  if(e.key==="ArrowLeft"||e.key==="ArrowDown"){ setGate(Math.round(gateCm) - (e.shiftKey?10:1)); e.preventDefault(); }
+  if(e.key==="ArrowRight"||e.key==="ArrowUp"){ setGate(Math.round(gateCm) + (e.shiftKey?10:1)); e.preventDefault(); }
+});
+document.querySelectorAll("[data-move]").forEach(b=> b.addEventListener("click", ()=>{ if(!running) setGate(Math.round(gateCm) + parseFloat(b.dataset.move)); }));
+
+// balance
+const balEl = document.getElementById("bal"), weighBtn = document.getElementById("weigh");
+let onBal = false;
+weighBtn.addEventListener("click", ()=>{
+  onBal = !onBal;
+  balEl.innerHTML = (onBal ? saved.mass.toFixed(1) : "0.0") + "<small>g</small>";
+  weighBtn.textContent = onBal ? "Take car off balance" : "Put car on balance";
+});
+
+// velocimeter display
+const lcd = document.getElementById("lcd");
+function showSpeed(v){ lcd.innerHTML = (v==null ? "-.--" : v.toFixed(2)) + "<small>m/s</small>"; }
+document.getElementById("clearLcd").addEventListener("click", ()=> showSpeed(null));
+
+// ---- launch ----
+const launchBtn = document.getElementById("launch"), resetBtn = document.getElementById("reset");
+function rnd(a){ return (Math.random()*2-1)*a; }
+launchBtn.addEventListener("click", ()=>{
+  if(running) return;
+  if(pull < 0.2){ lzCar.focus(); return; }
+  running = true; launchBtn.disabled = true; resetBtn.disabled = true;
+  const m = saved.mass/1000, x = pull/100;
+  const mu = 0.15;
+  const a = mu*G;                                          // m/s^2 slowing on the track
+  const eff = EFF * (1 + rnd(0.04));                       // trial-to-trial variation
+  const vB = Math.sqrt(eff * K_SPRING * x*x / m);          // speed at Point B
+  const kLaunch = (vB*vB) / (2*x);                         // uniform accel. while spring pushes (for animation)
+  const slow = document.getElementById("slow").checked ? 0.08 : 1;
+  let pos = -pull/100, v = 0, phase = 0, gateDone = false;
+  let last = performance.now();
+  function step(now){
+    let dt = Math.min(0.05, (now - last)/1000) * slow; last = now;
+    const sub = 20; const h = dt/sub;
+    for(let i=0;i<sub;i++){
+      if(phase===0){
+        v += kLaunch*h; pos += v*h;
+        if(pos >= 0){ pos = 0; v = vB; phase = 1; }
+      } else if(phase===1){
+        const prev = pos;
+        const vNew = Math.max(0, v - a*h);
+        pos += (v + vNew)/2*h; v = vNew;
+        const g = gateCm/100;
+        if(!gateDone && prev < g && pos >= g){
+          gateDone = true;
+          const vg = Math.sqrt(Math.max(0, vB*vB - 2*a*g));
+          showSpeed(vg * (1 + rnd(0.003)));
+        }
+        if(!gateDone && gateCm===0 && pos >= 0){ gateDone = true; showSpeed(vB); }
+        const endCm = TRACK_CM - CAR_LEN - 1;
+        if(pos*100 >= endCm){ pos = endCm/100; v = 0; phase = 2; }
+        if(v <= 0) phase = 2;
+      }
+    }
+    carCm = pos*100;
+    render();
+    if(phase < 2) requestAnimationFrame(step);
+    else { running = false; resetBtn.disabled = false; pull = 0; }
+  }
+  requestAnimationFrame(step);
+});
+resetBtn.addEventListener("click", ()=>{
+  if(running) return;
+  pull = 0; carCm = 0; launchBtn.disabled = false; render();
+});
+
+render();
+})();
+</script>
+</body>
+</html>
